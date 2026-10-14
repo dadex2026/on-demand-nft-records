@@ -1,0 +1,15 @@
+# Never published here, whatever the job does: the same key and secret
+# patterns as the on-demand-nft project. Revealed secrets go in
+# records/reveals/, which tools/guard.py checks.
+keys/
+secrets/
+*.key
+*.pem
+*keypair*.json
+id.json
+mint-backend.json
+storage-funding.json
+*.age
+*identity*.txt
+.env
+.env.*
