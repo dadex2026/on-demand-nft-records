@@ -1,0 +1,23 @@
+# An alarm, not the gate: anything pushed here is already public. The gate is
+# tools/guard.py run before every push. If this fails, treat it as a leaked
+# sealed secret (runbook, Incidents): close that day's window.
+name: guard
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Check every commit in the push
+        run: |
+          if [ "${{ github.event_name }}" = push ] && [ "${{ github.event.before }}" != 0000000000000000000000000000000000000000 ]; then
+            python3 tools/guard.py -- "${{ github.event.before }}..${{ github.sha }}"
+          else
+            python3 tools/guard.py -- HEAD
+          fi
+      - name: Guard tests
+        run: python3 -m unittest discover -s tests -v
