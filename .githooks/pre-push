@@ -1,0 +1,14 @@
+#!/bin/sh
+# Refuse the push if tools/guard.py finds a problem in any commit being pushed.
+# Enable once per clone: git config core.hooksPath .githooks
+set -eu
+if command -v python3 >/dev/null 2>&1 && python3 -c '' >/dev/null 2>&1; then PY=python3; else PY=py; fi
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ "$local_sha" = "$zero" ] && continue          # a deletion: nothing to check
+    if [ "$remote_sha" = "$zero" ]; then
+        "$PY" tools/guard.py -- "$local_sha" --not --remotes
+    else
+        "$PY" tools/guard.py -- "$remote_sha..$local_sha"
+    fi
+done
