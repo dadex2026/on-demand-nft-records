@@ -13,3 +13,7 @@ storage-funding.json
 *identity*.txt
 .env
 .env.*
+
+# Python's caches, from running the guard and its tests locally
+__pycache__/
+*.pyc
