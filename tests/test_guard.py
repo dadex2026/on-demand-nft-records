@@ -97,6 +97,58 @@ class Guard(unittest.TestCase):
                      "results/1.json": {"commitment": COMMIT}})
         self.assertEqual(self.problems(CLOSE - 10), [])
 
+    # records/memo-address.jsonl is append-only
+    A1 = '{"address": "TestMemoAddressPublished111111111111111111", "from_day": 19000}\n'
+    A2 = '{"address": "TestMemoAddressReplacement11111111111111111", "from_day": 20000}\n'
+    FILE = "records/memo-address.jsonl"
+
+    def head(self):
+        return subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+
+    def memo_problems(self, *versions):
+        """Commit each version of the file in turn; check the commits after the first."""
+        self.commit({"README.md": "x", self.FILE: versions[0]})
+        base = self.head()
+        for v in versions[1:]:
+            if v is None:
+                subprocess.run(["git", "rm", "-q", self.FILE], check=True)
+                subprocess.run(["git", "commit", "-q", "-m", "t"], check=True)
+            else:
+                self.commit({self.FILE: v})
+        return [p for p in self.problems(CLOSE, [f"{base}..HEAD"]) if self.FILE in p]
+
+    def test_the_memo_address_file_may_grow_by_whole_lines(self):
+        self.assertEqual(self.memo_problems(self.A1, self.A1 + self.A2), [])
+
+    def test_a_changed_memo_address_line_is_refused(self):
+        p = self.memo_problems(self.A1, self.A1.replace("19000", "19001"))
+        self.assertTrue(any("changed or was removed" in x for x in p), p)
+
+    def test_a_removed_memo_address_line_is_refused(self):
+        p = self.memo_problems(self.A1 + self.A2, self.A1)
+        self.assertTrue(any("changed or was removed" in x for x in p), p)
+
+    def test_a_deleted_memo_address_file_is_refused(self):
+        p = self.memo_problems(self.A1, None)
+        self.assertTrue(any("deleted" in x for x in p), p)
+
+    def test_an_edit_undone_in_a_later_commit_is_still_refused(self):
+        p = self.memo_problems(self.A1, self.A1.replace("19000", "19001"), self.A1)
+        self.assertTrue(any("changed or was removed" in x for x in p), p)
+
+    def test_memo_address_lines_must_be_well_formed_and_rising(self):
+        for bad in ('{"address": "x"}\n', '{"address": "x", "from_day": "20000"}\n',
+                    '{"address": "x", "from_day": 18000}\n', "not json\n",
+                    '{"address": "x", "from_day": 20000, "extra": 1}\n'):
+            with self.subTest(bad=bad):
+                self.tearDown(); self.setUp()
+                p = self.memo_problems(self.A1, self.A1 + bad)
+                self.assertTrue(any("line 2" in x for x in p), p)
+
+    def test_a_memo_address_file_without_a_final_newline_is_refused(self):
+        p = self.memo_problems(self.A1, self.A1 + self.A2.rstrip("\n"))
+        self.assertTrue(any("whole line" in x for x in p), p)
+
     def test_exit_code(self):
         self.commit({"secrets/day.txt": "x"})
         self.assertEqual(guard.main(["--now", str(CLOSE)]), 1)
