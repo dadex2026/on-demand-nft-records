@@ -30,6 +30,7 @@ ALLOWED = [
     "configs/config-v*.json", "configs/fingerprints.jsonl",
     "records/commitments/g*/d*.json", "records/reveals/g*/d*.json",
     "records/incidents/*.json",
+    "records/memo-address.json",
     "contests/*.json", "results/*.json",
 ]
 HEX64 = re.compile(rb"(?<![0-9A-Fa-f])[0-9A-Fa-f]{64}(?![0-9A-Fa-f])")
