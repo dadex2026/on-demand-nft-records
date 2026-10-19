@@ -11,7 +11,10 @@ It checks every file in every commit about to be pushed, and refuses if:
      commitment of a day whose window has not closed;
   3. a reveal is for a day whose window has not closed, names no published
      commitment, or does not hash to that commitment;
-  4. a commitment record is malformed.
+  4. a commitment record is malformed;
+  5. records/memo-address.jsonl is not append-only: in any commit, it is not
+     its parent's version followed by whole new lines, or it is deleted, or a
+     line is not {"address", "from_day"} with from_day rising.
 
 Not caught: a secret written in some other encoding (base64, raw bytes). The
 jobs only ever write hex, which is why that is the form checked.
@@ -30,9 +33,10 @@ ALLOWED = [
     "configs/config-v*.json", "configs/fingerprints.jsonl",
     "records/commitments/g*/d*.json", "records/reveals/g*/d*.json",
     "records/incidents/*.json",
-    "records/memo-address.json",
+    "records/memo-address.jsonl",
     "contests/*.json", "results/*.json",
 ]
+MEMO_ADDRESS = "records/memo-address.jsonl"
 HEX64 = re.compile(rb"(?<![0-9A-Fa-f])[0-9A-Fa-f]{64}(?![0-9A-Fa-f])")
 COMMIT_FIELDS = ("offset_group", "day_index", "commitment", "anchor_round", "window_close")
 
@@ -56,6 +60,48 @@ def blobs(revs):
 
 def allowed(path):
     return any(fnmatch.fnmatchcase(path, pat) for pat in ALLOWED)
+
+
+def at(rev, path):
+    """The file's bytes in a commit, or None where it does not exist."""
+    r = subprocess.run(["git", "show", f"{rev}:{path}"], capture_output=True)
+    return r.stdout if r.returncode == 0 else None
+
+
+def memo_address_problems(revs):
+    """Every commit in revs against each of its parents: the memo address file
+    only ever grows by whole lines, and every line is a well-formed entry."""
+    problems = []
+    commits = git("rev-list", *revs).split() if revs else [git("rev-parse", "HEAD").strip()]
+    for c in (c.decode() for c in commits):
+        new = at(c, MEMO_ADDRESS)
+        for p in git("rev-list", "--parents", "-n", "1", c).split()[1:]:
+            old = at(p.decode(), MEMO_ADDRESS)
+            if old is None:
+                continue
+            if new is None:
+                problems.append(f"{MEMO_ADDRESS} (in commit {c[:12]}): deleted; it is append-only")
+            elif not new.startswith(old):
+                problems.append(f"{MEMO_ADDRESS} (in commit {c[:12]}): an earlier line changed or "
+                                f"was removed; it is append-only")
+        if new is None:
+            continue
+        if not new.endswith(b"\n"):
+            problems.append(f"{MEMO_ADDRESS} (in commit {c[:12]}): does not end with a whole line")
+        last = None
+        for n, raw in enumerate(new.split(b"\n")[:-1], start=1):
+            try:
+                e = json.loads(raw)
+                ok = (set(e) == {"address", "from_day"} and isinstance(e["address"], str)
+                      and isinstance(e["from_day"], int) and (last is None or e["from_day"] > last))
+            except Exception:
+                ok = False
+            if not ok:
+                problems.append(f"{MEMO_ADDRESS} (in commit {c[:12]}) line {n}: not "
+                                f'{{"address", "from_day"}} with from_day after the line before')
+                break
+            last = e["from_day"]
+    return problems
 
 
 def check(revs, now):
@@ -95,7 +141,7 @@ def check(revs, now):
                 problems.append(f"{where}: reveal for a day whose window has not closed")
             elif (rec["offset_group"], rec["day_index"]) != (rev.get("offset_group"), rev.get("day_index")):
                 problems.append(f"{where}: reveal names a different day from its commitment")
-    return problems
+    return problems + memo_address_problems(revs)
 
 
 def main(argv=None):
