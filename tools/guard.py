@@ -35,6 +35,7 @@ ALLOWED = [
     "records/incidents/*.json",
     "records/memo-address.jsonl",
     "contests/*.json", "results/*.json",
+    "verifier/index.html",
 ]
 MEMO_ADDRESS = "records/memo-address.jsonl"
 HEX64 = re.compile(rb"(?<![0-9A-Fa-f])[0-9A-Fa-f]{64}(?![0-9A-Fa-f])")
