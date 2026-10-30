@@ -1,0 +1,12 @@
+{
+  "offset_group": -18000,
+  "day_index": 20756,
+  "commitment": "026d840bf064942d6ca806ab008aa8f9a66e655cf8b782abadee781885317aad",
+  "window_open": 1793336400,
+  "anchor_round": 33510113,
+  "memo_signature": "DWZA4Zt958FofucEgXtc5ipzWHuTkcKcuG3ye7F7qDvKknDcH14Za6FHzhSL8jE7vDJ6ChYeRDt7qwNsomSQnRT",
+  "memo_slot": 463142364,
+  "memo_block_time": 1793332817,
+  "window_close": 1793422800,
+  "drand_chain": "52db9ba70e0cc0f6eaf7803dd07447a1f5477735fd3f661792ba94600c84e971"
+}
