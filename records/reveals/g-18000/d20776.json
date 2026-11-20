@@ -1,0 +1,9 @@
+{
+  "offset_group": -18000,
+  "day_index": 20776,
+  "secret": "c7415216f97714ee3537985279643895a2e1ad51f561968ed4723de5b3c7a0d2",
+  "anchor_round": 34086112,
+  "memo_signature": "5kSJbfnFqp72y2J6JATCvkoJ65B7Nft5xwGD35WypWM3kpNtPoD4iD8aCcREitPWgxSNTba7ndWH5BWVM9ixNH2z",
+  "round_signature": "a37010e4bdef3fa97dd8182b495c60c52765676de6ba8d78079aaa5c9861304c92be9534a826edc4a0799ebda56beb06",
+  "randomness": "4940d5f1430787a3b4c0ae68aa75aca78eb666d3e39c2cac37ca41b6edfbd587"
+}
